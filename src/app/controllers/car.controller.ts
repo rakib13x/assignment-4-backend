@@ -10,7 +10,7 @@ const createProduct = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Car is created succesfully',
+    message: 'Product is created succesfully',
     data: result,
   });
 });
