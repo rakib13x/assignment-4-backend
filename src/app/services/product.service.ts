@@ -19,7 +19,13 @@ const getAllProductsFromDb = async (regex?: RegExp) => {
   }
 };
 
+const getSingleProductFromDb = async (id: string) => {
+  const result = await ProductModel.findById(id);
+  return result;
+};
+
 export const ProductServices = {
   createProductsIntoDB,
   getAllProductsFromDb,
+  getSingleProductFromDb,
 };
