@@ -6,6 +6,20 @@ const createProductsIntoDB = async (product: TProduct) => {
   return result;
 };
 
+const getAllProductsFromDb = async (regex?: RegExp) => {
+  try {
+    const result = regex
+      ? await ProductModel.find({ name: { $regex: regex } })
+      : await ProductModel.find();
+
+    return result;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
+    throw new Error('Error fetching products: ' + error.message);
+  }
+};
+
 export const ProductServices = {
   createProductsIntoDB,
+  getAllProductsFromDb,
 };
