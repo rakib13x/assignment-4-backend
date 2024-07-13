@@ -16,30 +16,63 @@ const createProduct = catchAsync(async (req, res) => {
 });
 
 const getAllProducts = catchAsync(async (req, res) => {
-  const { name } = req.query;
-  const regex = name ? new RegExp(name as string, 'i') : undefined;
-  const products = await ProductServices.getAllProductsFromDb(regex);
+  const { name, category, minPrice, maxPrice, sortOrder } = req.query;
+
+  // Helper function to cast query params to string or undefined
+  const toString = (
+    value: string | ParsedQs | string[] | ParsedQs[],
+  ): string | undefined => {
+    if (Array.isArray(value)) {
+      return value[0] as string;
+    }
+    return value as string;
+  };
+
+  const nameStr = toString(name);
+  const categoryStr = toString(category);
+  const sortOrderStr = toString(sortOrder);
+
+  // Create regex for name
+  const regex = nameStr ? new RegExp(nameStr, 'i') : undefined;
+
+  // Parse minPrice and maxPrice to float, handling invalid cases
+  const minPriceParsed = minPrice ? parseFloat(minPrice as string) : undefined;
+  const maxPriceParsed = maxPrice ? parseFloat(maxPrice as string) : undefined;
+
+  const products = await ProductServices.getAllProductsFromDb({
+    name: regex,
+    category: categoryStr,
+    minPrice:
+      minPriceParsed !== undefined && !isNaN(minPriceParsed)
+        ? minPriceParsed
+        : undefined,
+    maxPrice:
+      maxPriceParsed !== undefined && !isNaN(maxPriceParsed)
+        ? maxPriceParsed
+        : undefined,
+    sortOrder: sortOrderStr,
+  });
 
   if (products.length === 0) {
     sendResponse(res, {
       statusCode: httpStatus.NOT_FOUND,
       success: false,
-      message: 'All products is retrieved successfully !',
+      message: 'No products found!',
       data: [],
     });
+    return;
   }
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'All products is retrieved successfully !',
+    message: 'All products are retrieved successfully!',
     data: products,
   });
 });
-
 const getSingleProduct = catchAsync(async (req, res) => {
-  const { carId } = req.params;
-  const result = await ProductServices.getSingleProductFromDb(carId);
+  const { productId } = req.params;
+  const result = await ProductServices.getSingleProductFromDb(productId);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
