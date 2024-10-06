@@ -1,7 +1,7 @@
-import { Schema, model } from 'mongoose';
+import { Schema, Types, model } from 'mongoose';
 
 interface PaymentDetails {
-  productId: string;
+  productId: Types.ObjectId;
   amount: number;
   currency: string;
   paymentStatus: string;

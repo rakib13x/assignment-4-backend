@@ -15,7 +15,8 @@ app.use(express.json());
 app.use(cookieParser());
 
 const corsOptions = {
-  origin: 'http://localhost:5174', // Allow only this origin
+  origin:
+    'https://assignment-4-client-pghdr2m0d-rakib13xgmailcoms-projects.vercel.app/', // Allow only this origin
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true, // Enable credentials (cookies, authorization headers, etc.)
   allowedHeaders: 'Content-Type,Authorization',

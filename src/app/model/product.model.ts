@@ -1,8 +1,14 @@
-// model/product.model.ts
-import { Document, Schema, model } from 'mongoose';
-import { TProduct } from '../interface/product.interface';
+import { Document, Schema, Types, model } from 'mongoose';
 
-interface ProductDocument extends TProduct, Document {}
+interface ProductDocument extends Document {
+  name: string;
+  price: number;
+  description: string;
+  stock: number;
+  category: string[];
+  ratings: number;
+  images: string[];
+}
 
 const productSchema = new Schema<ProductDocument>(
   {
@@ -17,13 +23,14 @@ const productSchema = new Schema<ProductDocument>(
   { timestamps: true },
 );
 
-// Virtual for 'id'
-productSchema.virtual('id').get(function () {
+productSchema.virtual('id').get(function (
+  this: ProductDocument & { _id: Types.ObjectId },
+) {
   return this._id.toHexString();
 });
 
-// Ensure virtuals are included in JSON
 productSchema.set('toJSON', {
   virtuals: true,
 });
+
 export const ProductModel = model<ProductDocument>('Product', productSchema);
