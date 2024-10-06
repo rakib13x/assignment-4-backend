@@ -1,45 +1,29 @@
-import stripe from '../config/stripe';
-import { PaymentModel } from '../model/payment.model';
+import dotenv from 'dotenv';
+dotenv.config();
 
-interface PaymentData {
-  productId: string;
-  amount: number;
-  currency: string;
-  paymentMethodId: string;
-}
+import Stripe from 'stripe';
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-06-20',
+  typescript: true,
+});
 
-const createPaymentIntent = async (paymentData: PaymentData) => {
-  const { productId, amount, currency, paymentMethodId } = paymentData;
-
-  try {
-    // Convert amount to integer (smallest currency unit, e.g., cents)
-    const amountInCents = Math.round(amount * 100);
-
-    // Create a PaymentIntent with Stripe
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amountInCents,
-      currency,
-      payment_method: paymentMethodId,
-      confirm: true,
-      return_url: 'http://localhost:3000/success', // Replace with your actual success URL
-    });
-
-    // Save payment details in the database
-    const paymentDetails = await PaymentModel.create({
-      productId,
-      amount,
-      currency,
-      paymentStatus: paymentIntent.status,
-      paymentId: paymentIntent.id,
-    });
-
-    return paymentDetails;
-  } catch (error) {
-    console.error('Error creating payment intent:', error);
-    throw new Error(error.message);
-  }
+const createPaymentIntent = async (
+  amount: number,
+  currency: string = 'usd',
+) => {
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount,
+    currency,
+  });
+  return paymentIntent;
 };
 
-export const PaymentServices = {
+const confirmPayment = async (paymentIntentId: string) => {
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  return paymentIntent;
+};
+
+export const paymentServices = {
   createPaymentIntent,
+  confirmPayment,
 };

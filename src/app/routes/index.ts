@@ -1,17 +1,20 @@
 import { Router } from 'express';
+
 import { PaymentRoutes } from './route/payment.route';
 import { ProductRoutes } from './route/product.route';
 
+// console.log('PaymentRoutes:', PaymentRoutes);
+// console.log('ProductRoutes:', ProductRoutes);
+
 const router = Router();
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const moduleRoutes = [
   {
     path: '/',
     route: ProductRoutes,
   },
   {
-    path: '/',
+    path: '/payment',
     route: PaymentRoutes,
   },
 ];

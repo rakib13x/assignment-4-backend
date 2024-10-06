@@ -1,56 +1,122 @@
 import { Request, Response } from 'express';
-import httpStatus from 'http-status';
-import mongoose from 'mongoose';
-import { PaymentServices } from '../services/payment.service';
-import catchAsync from '../utils/catchAsync';
-import sendResponse from '../utils/sendResponse';
+import Stripe from 'stripe';
+import { paymentServices } from '../services/payment.service';
 
-const createPayment = catchAsync(async (req: Request, res: Response) => {
-  const { productId, amount, currency, paymentMethodId } = req.body;
+import dotenv from 'dotenv';
+import orderModel from '../model/order.model';
+import { ProductModel } from '../model/product.model';
 
-  if (!productId || !amount || !currency || !paymentMethodId) {
-    console.error('Missing required parameters:', req.body);
-    return sendResponse(res, {
-      statusCode: httpStatus.BAD_REQUEST,
-      success: false,
-      message: 'Missing required parameters',
-    });
+dotenv.config();
+
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+if (!stripeSecretKey) {
+  throw new Error('Stripe secret key is missing.');
+}
+const stripe = new Stripe(stripeSecretKey);
+
+export const createPaymentIntentController = async (
+  req: Request,
+  res: Response,
+) => {
+  const { amount, products } = req.body;
+
+  if (!amount || typeof amount !== 'number') {
+    return res.status(400).json({ success: false, message: 'Invalid amount' });
   }
 
-  if (!mongoose.Types.ObjectId.isValid(productId)) {
-    console.error('Invalid productId format:', productId);
-    return sendResponse(res, {
-      statusCode: httpStatus.BAD_REQUEST,
-      success: false,
-      message: 'Invalid productId format',
-    });
+  if (!products || !Array.isArray(products) || products.length === 0) {
+    return res
+      .status(400)
+      .json({ success: false, message: 'No products provided for the order' });
   }
 
   try {
-    const paymentDetails = await PaymentServices.createPaymentIntent({
-      productId: new mongoose.Types.ObjectId(productId),
+    // Create PaymentIntent
+    const paymentIntent = await stripe.paymentIntents.create({
       amount,
-      currency,
-      paymentMethodId,
+      currency: 'usd',
     });
 
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: 'Payment processed successfully',
-      data: paymentDetails,
+    // Save the order with products in the database
+    const order = new orderModel({
+      transactionId: paymentIntent.id,
+      paymentStatus: 'unpaid',
+      products, // Ensure that the products array is properly passed and saved
     });
-  } catch (error) {
-    console.error('Error creating payment:', error);
-    sendResponse(res, {
-      statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-      success: false,
-      message: 'Payment processing failed',
-      data: error.message,
-    });
+
+    await order.save();
+
+    res.json({ success: true, clientSecret: paymentIntent.client_secret });
+  } catch (error: any) {
+    console.error('Error creating payment intent:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
   }
-});
+};
 
-export const PaymentControllers = {
-  createPayment,
+const confirmPaymentController = async (req: Request, res: Response) => {
+  const { paymentIntentId } = req.body;
+
+  console.log('Confirming payment for:', paymentIntentId);
+
+  if (!paymentIntentId) {
+    return res
+      .status(400)
+      .json({ success: false, message: 'PaymentIntent ID is required' });
+  }
+
+  try {
+    const paymentIntent = await paymentServices.confirmPayment(paymentIntentId);
+
+    console.log('Payment intent status:', paymentIntent.status);
+
+    if (paymentIntent.status === 'succeeded') {
+      const order = await orderModel.findOne({
+        transactionId: paymentIntentId,
+      });
+
+      if (!order) {
+        return res
+          .status(404)
+          .json({ success: false, message: 'Order not found' });
+      }
+
+      order.paymentStatus = 'paid';
+      await order.save();
+
+      console.log('Order found:', order);
+
+      for (const product of order.products) {
+        const productInDb = await ProductModel.findById(product.productId);
+
+        if (!productInDb) {
+          return res
+            .status(404)
+            .json({
+              success: false,
+              message: `Product not found with ID: ${product.productId}`,
+            });
+        }
+
+        productInDb.stock = Math.max(productInDb.stock - product.quantity, 0);
+        await productInDb.save();
+      }
+
+      res.json({ success: true, paymentIntent, order });
+    } else {
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: 'Payment not completed successfully',
+        });
+    }
+  } catch (error: any) {
+    console.error('Error confirming payment:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const paymentController = {
+  createPaymentIntentController,
+  confirmPaymentController,
 };

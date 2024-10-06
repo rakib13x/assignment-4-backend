@@ -1,16 +1,40 @@
+// controllers/product.controller.ts
 import httpStatus from 'http-status';
-
+import { ParsedQs } from 'qs';
+import { cloudinaryUpload } from '../config/cloudinary.config';
 import { ProductServices } from '../services/product.service';
 import catchAsync from '../utils/catchAsync';
 import sendResponse from '../utils/sendResponse';
 
 const createProduct = catchAsync(async (req, res) => {
-  const result = await ProductServices.createProductsIntoDB(req.body);
+  const files = req.files as Express.Multer.File[];
+
+  if (!files || files.length === 0) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'At least one image is required!',
+    });
+  }
+
+  const uploadedImages = await Promise.all(
+    files.map(async (file: Express.Multer.File) => {
+      const result = await cloudinaryUpload.uploader.upload(file.path);
+      return result.secure_url;
+    }),
+  );
+
+  const productData = {
+    ...req.body,
+    images: uploadedImages,
+  };
+
+  const result = await ProductServices.createProductsIntoDB(productData);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Product is created succesfully',
+    message: 'Product is created successfully',
     data: result,
   });
 });
@@ -18,7 +42,6 @@ const createProduct = catchAsync(async (req, res) => {
 const getAllProducts = catchAsync(async (req, res) => {
   const { name, category, minPrice, maxPrice, sortOrder } = req.query;
 
-  // Helper function to cast query params to string or undefined
   const toString = (
     value: string | ParsedQs | string[] | ParsedQs[],
   ): string | undefined => {
@@ -28,14 +51,12 @@ const getAllProducts = catchAsync(async (req, res) => {
     return value as string;
   };
 
-  const nameStr = toString(name);
-  const categoryStr = toString(category);
-  const sortOrderStr = toString(sortOrder);
+  const nameStr = toString(name || '');
+  const categoryStr = toString(category || '');
+  const sortOrderStr = toString(sortOrder || '');
 
-  // Create regex for name
   const regex = nameStr ? new RegExp(nameStr, 'i') : undefined;
 
-  // Parse minPrice and maxPrice to float, handling invalid cases
   const minPriceParsed = minPrice ? parseFloat(minPrice as string) : undefined;
   const maxPriceParsed = maxPrice ? parseFloat(maxPrice as string) : undefined;
 
@@ -53,23 +74,17 @@ const getAllProducts = catchAsync(async (req, res) => {
     sortOrder: sortOrderStr,
   });
 
-  if (products.length === 0) {
-    sendResponse(res, {
-      statusCode: httpStatus.NOT_FOUND,
-      success: false,
-      message: 'No products found!',
-      data: [],
-    });
-    return;
-  }
-
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'All products are retrieved successfully!',
+    message:
+      products.length === 0
+        ? 'No products found!'
+        : 'All products retrieved successfully!',
     data: products,
   });
 });
+
 const getSingleProduct = catchAsync(async (req, res) => {
   const { productId } = req.params;
   const result = await ProductServices.getSingleProductFromDb(productId);
@@ -81,8 +96,28 @@ const getSingleProduct = catchAsync(async (req, res) => {
   });
 });
 
+const deleteProduct = catchAsync(async (req, res) => {
+  const { productId } = req.params;
+  const deletedProduct = await ProductServices.deleteProductFromDb(productId);
+
+  if (!deletedProduct) {
+    return sendResponse(res, {
+      statusCode: httpStatus.NOT_FOUND,
+      success: false,
+      message: 'Product not found',
+    });
+  }
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Product deleted successfully',
+  });
+});
+
 export const ProductControllers = {
   createProduct,
   getAllProducts,
   getSingleProduct,
+  deleteProduct,
 };

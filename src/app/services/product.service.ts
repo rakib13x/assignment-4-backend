@@ -1,6 +1,8 @@
 import { SortOrder } from 'mongoose';
+
 import { TProduct } from '../interface/product.interface';
 import { ProductModel } from '../model/product.model';
+
 interface QueryParams {
   name?: RegExp;
   category?: string;
@@ -42,7 +44,7 @@ const getAllProductsFromDb = async ({
     const result = await ProductModel.find(query).sort(sort);
 
     return result;
-  } catch (error) {
+  } catch (error: any) {
     throw new Error('Error fetching products: ' + error.message);
   }
 };
@@ -52,8 +54,14 @@ const getSingleProductFromDb = async (id: string) => {
   return result;
 };
 
+const deleteProductFromDb = async (id: string) => {
+  const result = await ProductModel.findByIdAndDelete(id);
+  return result;
+};
+
 export const ProductServices = {
   createProductsIntoDB,
   getAllProductsFromDb,
   getSingleProductFromDb,
+  deleteProductFromDb,
 };

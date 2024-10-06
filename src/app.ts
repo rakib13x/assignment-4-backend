@@ -5,9 +5,8 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { Application, Request, Response } from 'express';
-import notFound from './app/middlewares/notFound';
-import { PaymentRoutes } from './app/routes/route/payment.route';
-import { ProductRoutes } from './app/routes/route/product.route';
+
+import router from './app/routes';
 
 const app: Application = express();
 
@@ -16,7 +15,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 const corsOptions = {
-  origin: 'http://localhost:5173', // Allow only this origin
+  origin: 'http://localhost:5174', // Allow only this origin
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true, // Enable credentials (cookies, authorization headers, etc.)
   allowedHeaders: 'Content-Type,Authorization',
@@ -25,12 +24,14 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 //application Routes
-app.use('/api/v1', ProductRoutes);
-app.use('/api/v1', PaymentRoutes);
+app.use('/api/v1', router);
 
 app.get('/', (req: Request, res: Response) => {
   res.send('Hello from server.');
 });
 
-app.use(notFound);
+// app.use(notFound);
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: 'Not Found' });
+});
 export default app;
