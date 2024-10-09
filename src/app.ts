@@ -14,10 +14,15 @@ const app: Application = express();
 app.use(express.json());
 app.use(cookieParser());
 
+// app.use(
+//   cors({
+//     origin: 'https://assignment-4-client-amber.vercel.app',
+//     credentials: true,
+//   }),
+// );
 app.use(
   cors({
     origin: 'http://localhost:5173',
-
     credentials: true,
   }),
 );

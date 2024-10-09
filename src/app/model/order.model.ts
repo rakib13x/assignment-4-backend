@@ -15,7 +15,7 @@ interface Order extends Document {
 
 const orderSchema = new Schema<Order>({
   transactionId: { type: String, required: false },
-  user: { type: Object, required: true },
+  user: { type: Object, required: false },
   paymentStatus: { type: String, required: true },
   products: [
     {
