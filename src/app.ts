@@ -15,9 +15,13 @@ app.use(express.json());
 app.use(cookieParser());
 
 const corsOptions = {
-  origin: '*',
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'https://assignment-4-client-amber.vercel.app',
+  ], // Allow both origins
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  credentials: true,
+  credentials: true, // Required if you're passing cookies or tokens
   allowedHeaders: 'Content-Type,Authorization',
 };
 
