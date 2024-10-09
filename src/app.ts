@@ -15,12 +15,13 @@ app.use(express.json());
 app.use(cookieParser());
 
 const corsOptions = {
-  origin:
-    'https://assignment-4-client-pghdr2m0d-rakib13xgmailcoms-projects.vercel.app/', // Allow only this origin
+  origin: '*',
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  credentials: true, // Enable credentials (cookies, authorization headers, etc.)
+  credentials: true,
   allowedHeaders: 'Content-Type,Authorization',
 };
+
+app.use(cors(corsOptions));
 
 app.use(cors(corsOptions));
 
