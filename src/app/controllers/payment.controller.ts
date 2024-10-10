@@ -31,17 +31,15 @@ export const createPaymentIntentController = async (
   }
 
   try {
-    // Create PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
       currency: 'usd',
     });
 
-    // Save the order with products in the database
     const order = new orderModel({
-      transactionId: paymentIntent.id,
+      transactionId: paymentIntent.id, // Stripe transaction ID
       paymentStatus: 'unpaid',
-      products, // Ensure that the products array is properly passed and saved
+      products,
     });
 
     await order.save();
@@ -89,12 +87,10 @@ const confirmPaymentController = async (req: Request, res: Response) => {
         const productInDb = await ProductModel.findById(product.productId);
 
         if (!productInDb) {
-          return res
-            .status(404)
-            .json({
-              success: false,
-              message: `Product not found with ID: ${product.productId}`,
-            });
+          return res.status(404).json({
+            success: false,
+            message: `Product not found with ID: ${product.productId}`,
+          });
         }
 
         productInDb.stock = Math.max(productInDb.stock - product.quantity, 0);
@@ -103,12 +99,10 @@ const confirmPaymentController = async (req: Request, res: Response) => {
 
       res.json({ success: true, paymentIntent, order });
     } else {
-      res
-        .status(400)
-        .json({
-          success: false,
-          message: 'Payment not completed successfully',
-        });
+      res.status(400).json({
+        success: false,
+        message: 'Payment not completed successfully',
+      });
     }
   } catch (error: any) {
     console.error('Error confirming payment:', error);
@@ -116,7 +110,48 @@ const confirmPaymentController = async (req: Request, res: Response) => {
   }
 };
 
+export const createCODOrderController = async (req: Request, res: Response) => {
+  const { user, products } = req.body;
+
+  if (!products || !Array.isArray(products) || products.length === 0) {
+    return res
+      .status(400)
+      .json({ success: false, message: 'No products provided for the order' });
+  }
+
+  try {
+    const order = new orderModel({
+      user,
+      paymentStatus: 'pending',
+      products,
+      transactionId: 'COD', // Set a placeholder value for COD orders
+    });
+
+    await order.save();
+
+    for (const product of products) {
+      const productInDb = await ProductModel.findById(product.productId);
+
+      if (!productInDb) {
+        return res.status(404).json({
+          success: false,
+          message: `Product not found with ID: ${product.productId}`,
+        });
+      }
+
+      productInDb.stock = Math.max(productInDb.stock - product.quantity, 0);
+      await productInDb.save();
+    }
+
+    res.json({ success: true, order });
+  } catch (error: any) {
+    console.error('Error creating COD order:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
+};
+
 export const paymentController = {
   createPaymentIntentController,
   confirmPaymentController,
+  createCODOrderController,
 };

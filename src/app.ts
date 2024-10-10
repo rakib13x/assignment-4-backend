@@ -14,20 +14,20 @@ const app: Application = express();
 app.use(express.json());
 app.use(cookieParser());
 
-const corsOptions = {
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'https://assignment-4-client-amber.vercel.app',
-  ], // Allow both origins
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  credentials: true, // Required if you're passing cookies or tokens
-  allowedHeaders: 'Content-Type,Authorization',
-};
+app.use(
+  cors({
+    origin: 'http://localhost:5173',
 
-app.use(cors(corsOptions));
+    credentials: true,
+  }),
+);
 
-app.use(cors(corsOptions));
+// app.use(
+//   cors({
+//     origin: 'http://localhost:5173',
+//     credentials: true,
+//   }),
+// );
 
 //application Routes
 app.use('/api/v1', router);

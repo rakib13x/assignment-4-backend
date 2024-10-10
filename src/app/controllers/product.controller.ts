@@ -1,4 +1,3 @@
-// controllers/product.controller.ts
 import httpStatus from 'http-status';
 import { ParsedQs } from 'qs';
 import { cloudinaryUpload } from '../config/cloudinary.config';
@@ -115,9 +114,65 @@ const deleteProduct = catchAsync(async (req, res) => {
   });
 });
 
+const getBestSellingProducts = catchAsync(async (req, res) => {
+  const bestSellingProducts =
+    await ProductServices.getBestSellingProductsFromDb();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message:
+      bestSellingProducts.length === 0
+        ? 'No best selling products found!'
+        : 'Best selling products retrieved successfully!',
+    data: bestSellingProducts,
+  });
+});
+
+const updateProduct = catchAsync(async (req, res) => {
+  const { productId } = req.params;
+  console.log(productId);
+  const files = req.files as Express.Multer.File[];
+  console.log(files);
+
+  let updatedData = { ...req.body };
+
+  if (files && files.length > 0) {
+    const uploadedImages = await Promise.all(
+      files.map(async (file: Express.Multer.File) => {
+        const result = await cloudinaryUpload.uploader.upload(file.path);
+        return result.secure_url;
+      }),
+    );
+    updatedData.images = uploadedImages;
+  }
+
+  const updatedProduct = await ProductServices.updateProductInDb(
+    productId,
+    updatedData,
+  );
+
+  if (!updatedProduct) {
+    return sendResponse(res, {
+      statusCode: httpStatus.NOT_FOUND,
+      success: false,
+      message: 'Product not found',
+    });
+  }
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Product updated successfully!',
+    data: updatedProduct,
+  });
+});
+
 export const ProductControllers = {
   createProduct,
   getAllProducts,
   getSingleProduct,
   deleteProduct,
+  getBestSellingProducts,
+  updateProduct,
 };

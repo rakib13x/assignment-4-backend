@@ -13,6 +13,12 @@ router.post(
 );
 router.get('/allProducts', ProductControllers.getAllProducts);
 router.get('/product/:productId', ProductControllers.getSingleProduct);
-router.delete('/product/:productId', ProductControllers.deleteProduct);
+router.get('/best-selling', ProductControllers.getBestSellingProducts);
+router.put(
+  '/products/:productId',
+  multerUpload.array('images', 10),
+  ProductControllers.updateProduct,
+);
+router.delete('/products/:productId', ProductControllers.deleteProduct);
 
 export const ProductRoutes = router;

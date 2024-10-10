@@ -1,23 +1,31 @@
-// src/order/order.model.ts
+import mongoose, { Document, Schema } from 'mongoose';
 
-import mongoose from 'mongoose';
+interface Product {
+  productId: string;
+  quantity: number;
+  price: number;
+}
 
-const orderSchema = new mongoose.Schema({
-  transactionId: { type: String, required: true },
+interface Order extends Document {
+  transactionId?: string;
+  user: any;
+  paymentStatus: 'unpaid' | 'paid' | 'pending';
+  products: Product[];
+}
+
+const orderSchema = new Schema<Order>({
+  transactionId: { type: String, required: false },
+  user: { type: Object, required: true },
   paymentStatus: { type: String, required: true },
   products: [
     {
-      productId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true,
-      },
+      productId: { type: String, required: true },
       quantity: { type: Number, required: true },
       price: { type: Number, required: true },
     },
   ],
 });
 
-const orderModel = mongoose.model('Order', orderSchema);
+const orderModel = mongoose.model<Order>('Order', orderSchema);
 
 export default orderModel;
